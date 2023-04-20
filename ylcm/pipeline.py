@@ -56,7 +56,7 @@ class ConsistencyPipeline(DiffusionPipeline):
                     sample.shape, device=sample.device, generator=generator
                 )
 
-            out = model(sample, torch.tensor([time], image_labels, device=sample.device)).sample
+            out = model(sample, torch.tensor([time], device=sample.device), image_labels).sample
 
             skip_coef = data_std ** 2 / ((time - eps) ** 2 + data_std ** 2)
             out_coef = data_std * (time - eps) / (time ** 2 + data_std ** 2) ** (0.5)
