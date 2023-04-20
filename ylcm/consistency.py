@@ -296,7 +296,7 @@ class Consistency:
         print(f"🚀yl-consistency model training ends! total time:{(t2 - t1) / 3600:.3f} hours!")
 
     def save_loss_csv(self):
-        loss_df = pd.DataFrame({'train_noise_loss' : self.logger['train_noise_loss_list']})
+        loss_df = pd.DataFrame({'train_noise_loss' : self.logger['train_loss_list']})
         if self.config.use_wandb:
             loss_table = wandb.Table(
                 columns=['train_noise_loss'])

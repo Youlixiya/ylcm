@@ -72,7 +72,7 @@ unconditional_cifar10_cmconfig_dict = dict(
     num_epochs = 50,
     nc = 10,
     warm_epochs = 3,
-    learning_rate = 1e-3,
+    learning_rate = 1e-4,
     momentum = 0,  # SGD momentum/Adam beta1
     weight_decay =  0,
     optimizer = 'RAdam',
@@ -121,6 +121,83 @@ unconditional_cifar10_cmconfig_dict = dict(
     test_txt = None,
     dataset_path = None,
     dataset_name = 'CIFAR10CMDataset',
+    train_images_file_list = None,
+    train_labels_list = None,
+    valid_images_file_list = None,
+    valid_labels_list = None,
+    test_images_file_list = None,
+    test_labels_list = None,
+    train_dataset = None,
+    train_dataloader = None,
+    use_wandb = False,
+    push_to_hub = False,
+    workers = 0,
+    transforms = None,
+    max_nums = None
+)
+unconditional_oxfordflowers102_cmconfig_dict = dict(
+    image_size = 128,  # the generated image resolution
+    train_batch_size = 32,
+    save_image_epochs = 1,
+    save_model_epochs =1,
+    num_samples = 16,
+    sample_steps = 10,
+    num_epochs = 30,
+    nc = 102,
+    warm_epochs = 3,
+    learning_rate = 1e-4,
+    momentum = 0,  # SGD momentum/Adam beta1
+    weight_decay =  0,
+    optimizer = 'RAdam',
+    data_std = 0.5,
+    eps = 0.002,
+    T = 80,
+    s0 = 2,
+    s1 = 150,
+    rou = 7,
+    use_ema = True,
+    mu0 = 0.9,
+    mixed_precision = 'fp16',  # `no` for float32, `fp16` for automatic mixed precision
+    output_dir = 'cm' , # the model namy locally and on the HF Hub
+    seed = 0,
+    loss_fn = "LearnedPerceptualImagePatchSimilarity(net_type='vgg')",
+    # loss_fn = 'L1Loss()',
+    model_args=dict(
+        model_type='UNet2DModel',
+        model_config=dict(
+            sample_size=128,  # the target image resolution
+            in_channels=3,  # the number of input channels, 3 for RGB images
+            out_channels=3,  # the number of output channels
+            layers_per_block=2,  # how many ResNet layers to use per UNet block
+            block_out_channels=(128, 128, 256, 256, 512, 512),  # the number of output channes for each UNet block
+            down_block_types=(
+                "DownBlock2D",  # a regular ResNet downsampling block
+                "DownBlock2D",
+                "DownBlock2D",
+                "DownBlock2D",
+                "AttnDownBlock2D",  # a ResNet downsampling block with spatial self-attention
+                "DownBlock2D",
+            ),
+            up_block_types=(
+                "UpBlock2D",  # a regular ResNet upsampling block
+                "AttnUpBlock2D",  # a ResNet upsampling block with spatial self-attention
+                "UpBlock2D",
+                "UpBlock2D",
+                "UpBlock2D",
+                "UpBlock2D"
+            ),
+        )),
+    model = None,
+    resume_ckpt_path = None,
+    project_name = 'unconditional_cm_oxfordflowers102_128',
+    conditional = True,
+    index2label_file_path = 'oxford-102-flowers/index2label.json',
+    index2label = None,
+    train_txt = 'train.txt',
+    valid_txt = 'valid.txt',
+    test_txt = 'test.txt',
+    dataset_path = 'oxford-102-flowers',
+    dataset_name = 'CMDataset',
     train_images_file_list = None,
     train_labels_list = None,
     valid_images_file_list = None,
