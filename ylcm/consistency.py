@@ -259,12 +259,14 @@ class Consistency:
                 self.save_samples(epoch)
             if epoch % self.config.save_model_epochs == 0 or epoch == self.config.num_epochs:
                 # self.ddpmpipeline.save_pretrained(self.config.output_dir)
-                self.pipeline.save_pretrained(self.config.out_dir)
-                self.repo.push_to_hub(
-                    commit_message=f"Epoch {epoch}",
-                    blocking=False,
-                )
+                self.pipeline.save_pretrained(self.config.output_dir)
+                if self.config.push_to_hub:
+                    self.repo.push_to_hub(
+                        commit_message=f"Epoch {epoch}",
+                        blocking=False,
+                    )
                 print('🚀yl-consistency model has saved!')
+            self.save_model(epoch, 'last')
             train_mean_loss = round(self.logger['train_noise_loss'] / self.logger['train_total_num'], 4)
             self.logger['train_loss_list'].append(train_mean_loss)
             print(f'train Epoch [{epoch}/{self.config.num_epochs}] loss:{train_mean_loss} ')
@@ -335,7 +337,7 @@ class Consistency:
         }
         if self.config.use_wandb:
             checkpoint.update({'run_id':self.run_id})
-        torch.save(checkpoint, os.path.join(self.config.output_dir, f'{self.model_name}.pt'))
+        torch.save(checkpoint, os.path.join(self.config.output_dir, f'{self.model_name}_{mode}.pt'))
         del checkpoint
     def save_config(self):
         self.config.train_dataset = None
