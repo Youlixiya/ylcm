@@ -237,6 +237,7 @@ class Consistency:
                     loss = self.loss(x, z, t_0, t_1, l)
                     self.logger['train_noise_loss'] += loss.item()
                     self.logger['train_total_num'] += x.shape[0]
+                    self.accelerator.clip_grad_norm_(self.model.parameters(), 1.0)
                     mem = f'{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G'  # (GB)
                     #反向传计算据梯度
                     self.accelerator.backward(loss)

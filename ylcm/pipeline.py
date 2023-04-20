@@ -44,25 +44,22 @@ class ConsistencyPipeline(DiffusionPipeline):
         img_size = self.unet.config.sample_size
         shape = (batch_size, 3, img_size, img_size)
 
+        time: float = T
 
-        timesteps = torch.linspace(T, eps, num_inference_steps, device=device)
-        time: float = timesteps[0]
-
-        sample = randn_tensor(shape, generator=generator, device=device) * time.item()
+        sample = randn_tensor(shape, generator=generator) * time
 
         for step in self.progress_bar(range(num_inference_steps)):
-            time = timesteps[step]
             if step > 0:
-                time = timesteps[step]
-                sigma = math.sqrt(time.item() ** 2 - eps ** 2 + 1e-6)
+                time = self.search_previous_time(time)
+                sigma = math.sqrt(time ** 2 - eps ** 2 + 1e-6)
                 sample = sample + sigma * randn_tensor(
                     sample.shape, device=sample.device, generator=generator
                 )
 
-            out = model(sample, time, image_labels).sample
+            out = model(sample, torch.tensor([time], device=sample.device)).sample
 
             skip_coef = data_std ** 2 / ((time - eps) ** 2 + data_std ** 2)
-            out_coef = data_std * time / (time ** 2 + data_std ** 2) ** (0.5)
+            out_coef = data_std * (time - eps) / (time ** 2 + data_std ** 2) ** (0.5)
 
             sample = (sample * skip_coef + out * out_coef).clamp(-1.0, 1.0)
 
@@ -77,8 +74,10 @@ class ConsistencyPipeline(DiffusionPipeline):
 
         return ImagePipelineOutput(images=image)
 
-    # TODO: Implement greedy search on FID
+        # TODO: Implement greedy search on FID
+
     def search_previous_time(
-        self, time, time_min: float = 0.002, time_max: float = 80.0
+            self, time, eps: float = 0.002, T: float = 80.0
     ):
-        return (2 * time + time_min) / 3
+        return (2 * time + eps) / 3
+
