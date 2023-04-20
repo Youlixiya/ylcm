@@ -46,7 +46,7 @@ class ConsistencyPipeline(DiffusionPipeline):
 
         time: float = T
 
-        sample = randn_tensor(shape, generator=generator) * time
+        sample = randn_tensor(shape, generator=generator, device=device) * time
 
         for step in self.progress_bar(range(num_inference_steps)):
             if step > 0:
