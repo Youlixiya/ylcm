@@ -269,7 +269,7 @@ class Consistency:
                     )
                 print('🚀yl-consistency model has saved!')
             self.save_model(epoch, 'last')
-            train_mean_loss = round(self.logger['train_noise_loss'] / self.logger['train_total_num'], 4)
+            train_mean_loss = self.logger['train_noise_loss'] / self.logger['train_total_num']
             self.logger['train_loss_list'].append(train_mean_loss)
             print(f'train Epoch [{epoch}/{self.config.num_epochs}] loss:{train_mean_loss} ')
             if self.config.use_wandb:
