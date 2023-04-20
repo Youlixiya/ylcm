@@ -45,25 +45,19 @@ class ConsistencyPipeline(DiffusionPipeline):
         model = self.unet
         timesteps = torch.linspace(T, eps, num_inference_steps, device=self.device)
         time: float = timesteps[0]
-        # timesteps = timesteps[1:]
 
         sample = randn_tensor(shape, generator=generator) * time.item()
-        # images: torch.Tensor = self.unet(
-        #     randn_tensor(shape, generator=generator, device=self.device) * time,
-        #     time,
-        #     image_labels
-        # )
 
-        for step in self.progress_bar(range(1, num_inference_steps)):
+        for step in self.progress_bar(range(num_inference_steps)):
             time = timesteps[step]
             if step > 0:
-                time = self.search_previous_time(time)
+                time = timesteps[step]
                 sigma = math.sqrt(time.item() ** 2 - eps ** 2 + 1e-6)
                 sample = sample + sigma * randn_tensor(
                     sample.shape, device=sample.device, generator=generator
                 )
 
-            out = model(sample, torch.tensor(time, device=sample.device)).sample
+            out = model(sample, time, image_labels).sample
 
             skip_coef = data_std ** 2 / ((time - eps) ** 2 + data_std ** 2)
             out_coef = data_std * time / (time ** 2 + data_std ** 2) ** (0.5)
