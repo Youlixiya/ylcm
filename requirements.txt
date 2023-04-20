@@ -3,3 +3,4 @@ transformers
 diffusers
 accelerate
 wandb
+lpips
