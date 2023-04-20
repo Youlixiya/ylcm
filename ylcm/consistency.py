@@ -76,7 +76,8 @@ class Consistency:
         self.start_epoch = ckpt['epoch']
         self.logger = ckpt['logger']
         self.train_global_step = ckpt['global_steps']
-        self.model.load_state_dict(ckpt['model'].state_dict())
+        self.model.load_state_dict(ckpt['model'])
+        self.ema.load_state_dict(ckpt['ema'])
         self.optimizer.load_state_dict(ckpt['optimizer'])
         self.lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
         if config.use_wandb:
@@ -327,8 +328,8 @@ class Consistency:
         plt.show()
     def save_model(self, epoch, mode='best'):
         checkpoint = {
-            'model': self.accelerator.unwrap_model(self.model),
-            'ema' : self.accelerator.unwrap_model(self.ema),
+            'model': self.accelerator.unwrap_model(self.model).state_dict(),
+            'ema' : self.accelerator.unwrap_model(self.ema).state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'lr_scheduler' : self.lr_scheduler.state_dict(),
             'epoch': epoch + 1,
