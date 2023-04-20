@@ -64,7 +64,7 @@ class CMConfig:
     max_nums: int
 unconditional_cifar10_cmconfig_dict = dict(
     image_size = 32,  # the generated image resolution
-    train_batch_size = 32,
+    train_batch_size = 128,
     save_image_epochs = 1,
     save_model_epochs =1,
     num_samples = 16,
