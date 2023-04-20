@@ -31,22 +31,24 @@ class ConsistencyPipeline(DiffusionPipeline):
         return_dict: bool = True,
         **kwargs,
     ) -> Union[Tuple, ImagePipelineOutput]:
+        model = self.unet
+        device = model.device
         image_labels = None
         if label_index is not None:
             assert label_index + 1 <= num_class, 'label_index must <= num_class!'
-            image_labels = torch.LongTensor([label_index]).repeat(batch_size).to(self.device)
+            image_labels = torch.LongTensor([label_index]).repeat(batch_size).to(device)
         else:
             if num_class is not None:
                 image_labels = torch.randint(low=0, high=num_class, size=[1])
-                image_labels = image_labels.repeat(batch_size).to(self.device)
+                image_labels = image_labels.repeat(batch_size).to(device)
         img_size = self.unet.config.sample_size
         shape = (batch_size, 3, img_size, img_size)
 
-        model = self.unet
-        timesteps = torch.linspace(T, eps, num_inference_steps, device=self.device)
+
+        timesteps = torch.linspace(T, eps, num_inference_steps, device=device)
         time: float = timesteps[0]
 
-        sample = randn_tensor(shape, generator=generator) * time.item()
+        sample = randn_tensor(shape, generator=generator, device=device) * time.item()
 
         for step in self.progress_bar(range(num_inference_steps)):
             time = timesteps[step]
