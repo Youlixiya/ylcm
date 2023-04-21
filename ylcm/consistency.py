@@ -118,7 +118,7 @@ class Consistency:
 
         return torch.tensor([
                 (T ** (1 / rou) + i / (N - 1) * (eps ** (1 / rou) - T ** (1 / rou)))
-                ** rou for i in N]
+                ** rou for i in range(N)]
         )
     def _forward(
         self,
