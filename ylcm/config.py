@@ -67,7 +67,7 @@ unconditional_cifar10_cmconfig_dict = dict(
     train_batch_size = 256,
     save_image_epochs = 1,
     save_model_epochs =1,
-    num_samples = 16,
+    num_samples = 64,
     sample_steps = 10,
     num_epochs = 50,
     nc = 10,
@@ -86,7 +86,7 @@ unconditional_cifar10_cmconfig_dict = dict(
     mu0 = 0.9,
     mixed_precision = 'fp16',  # `no` for float32, `fp16` for automatic mixed precision
     output_dir = 'cm' , # the model namy locally and on the HF Hub
-    seed = 213,
+    seed = 0,
     loss_fn = "LearnedPerceptualImagePatchSimilarity(net_type='vgg')",
     # loss_fn = 'L1Loss()',
     model_args=dict(

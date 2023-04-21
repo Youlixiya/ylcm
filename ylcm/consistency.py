@@ -45,7 +45,7 @@ class Consistency:
             train_noise_loss=0, train_total_num=0, train_loss_list=[]
         )
         self.init_data = False
-        self.train_global_step = 0
+        self.train_global_step = 1
         self.start_epoch = 1
     def init_dataloader(self, config):
         get_dataloader(config)
@@ -56,10 +56,11 @@ class Consistency:
         self.ema = deepcopy(self.model)
         self.get_optimizer(config)
         lr_warmup_steps = len(self.train_dataloader) * config.warm_epochs
+        self.train_total_steps = len(self.train_dataloader) * config.num_epochs
         self.lr_scheduler = get_cosine_schedule_with_warmup(
             optimizer=self.optimizer,
             num_warmup_steps=lr_warmup_steps,
-            num_training_steps=len(self.train_dataloader) * config.num_epochs)
+            num_training_steps=self.train_total_steps)
         self.accelerator = Accelerator(mixed_precision=config.mixed_precision)
         self.device = self.accelerator.device
         self.model = self.model.to(self.device)
@@ -112,14 +113,13 @@ class Consistency:
         else:
             self.optimizer = eval(config.optimizer)(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
 
-    def kerras_boundaries(self, rou, eps, N, T):
+    def kerras_boundaries(self, i, rou, eps, N, T):
         # This will be used to generate the boundaries for the time discretization
 
         return torch.tensor(
             [
-                (eps ** (1 / rou) + i / (N - 1) * (T ** (1 / rou) - eps ** (1 / rou)))
+                (T ** (1 / rou) + i / (N - 1) * (eps ** (1 / rou) - T ** (1 / rou)))
                 ** rou
-                for i in range(N)
             ]
         )
     def _forward(
@@ -218,7 +218,7 @@ class Consistency:
         for epoch in range(self.start_epoch, self.config.num_epochs+1):
             self.logger['train_noise_loss'] = 0
             self.logger['train_total_num'] = 0
-            N = math.ceil(math.sqrt((epoch * ((self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.config.num_epochs) + self.config.s0 ** 2) - 1) + 1
+            N = math.ceil(math.sqrt((self.train_global_step * ((self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.train_total_steps) + self.config.s0 ** 2) - 1) + 1
             boundaries = self.kerras_boundaries(self.config.rou, self.config.eps, N, self.config.T).to(self.device)
             with tqdm(total = len(self.train_dataloader), desc=f'train : Epoch [{epoch}/{self.config.num_epochs}]', postfix=dict,mininterval=0.3) as pbar:
                 for datas in self.train_dataloader:
@@ -262,11 +262,12 @@ class Consistency:
             if epoch % self.config.save_model_epochs == 0 or epoch == self.config.num_epochs:
                 # self.ddpmpipeline.save_pretrained(self.config.output_dir)
                 self.pipeline.save_pretrained(self.config.output_dir)
-                if self.config.push_to_hub:
-                    self.repo.push_to_hub(
-                        commit_message=f"Epoch {epoch}",
-                        blocking=False,
-                    )
+                if epoch == self.config.num_epochs:
+                    if self.config.push_to_hub:
+                        self.repo.push_to_hub(
+                            commit_message=f"Epoch {epoch}",
+                            blocking=False,
+                        )
                 print('🚀yl-consistency model has saved!')
             self.save_model(epoch, 'last')
             train_mean_loss = self.logger['train_noise_loss'] / self.logger['train_total_num']
