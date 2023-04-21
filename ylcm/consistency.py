@@ -117,7 +117,7 @@ class Consistency:
         # This will be used to generate the boundaries for the time discretization
 
         return torch.tensor([
-                (T ** (1 / rou) + i / (N - 1) * (eps ** (1 / rou) - T ** (1 / rou)))
+                (eps ** (1 / rou) + i / (N - 1) * (T ** (1 / rou) - eps ** (1 / rou)))
                 ** rou for i in range(N)]
         )
     def _forward(
