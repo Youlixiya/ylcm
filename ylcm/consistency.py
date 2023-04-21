@@ -216,11 +216,13 @@ class Consistency:
         for epoch in range(self.start_epoch, self.config.num_epochs+1):
             self.logger['train_noise_loss'] = 0
             self.logger['train_total_num'] = 0
+            N = math.ceil(math.sqrt((self.train_global_step * ((
+                  self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.train_total_steps) + self.config.s0 ** 2) - 1) + 1
+            kerras_boundaries = self.kerras_boundaries(self.config.rou, self.config.eps, N, self.config.T).to(
+                self.device)
             with tqdm(total = len(self.train_dataloader), desc=f'train : Epoch [{epoch}/{self.config.num_epochs}]', postfix=dict,mininterval=0.3) as pbar:
                 for datas in self.train_dataloader:
-                    N = math.ceil(math.sqrt((self.train_global_step * ((
-                            self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.train_total_steps) + self.config.s0 ** 2) - 1) + 1
-                    kerras_boundaries = self.kerras_boundaries(self.config.rou, self.config.eps, N, self.config.T).to(self.device)
+
                     if self.config.conditional:
                         x, l = datas
                         x = x.to(self.device)
