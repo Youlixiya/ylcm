@@ -219,7 +219,6 @@ class Consistency:
             self.logger['train_noise_loss'] = 0
             self.logger['train_total_num'] = 0
             N = math.ceil(math.sqrt((self.train_global_step * ((self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.train_total_steps) + self.config.s0 ** 2) - 1) + 1
-            boundaries = self.kerras_boundaries(self.config.rou, self.config.eps, N, self.config.T).to(self.device)
             with tqdm(total = len(self.train_dataloader), desc=f'train : Epoch [{epoch}/{self.config.num_epochs}]', postfix=dict,mininterval=0.3) as pbar:
                 for datas in self.train_dataloader:
                     if self.config.conditional:
@@ -232,8 +231,8 @@ class Consistency:
                         l = None
                     z = torch.randn_like(x)
                     t = torch.randint(0, N - 1, (x.shape[0],), device=self.device)
-                    t_0 = boundaries[t]
-                    t_1 = boundaries[t + 1]
+                    t_0 = self.kerras_boundaries(t, self.config.rou, self.config.eps, N, self.config.T).to(self.device)
+                    t_1 = self.kerras_boundaries(t+1, self.config.rou, self.config.eps, N, self.config.T).to(self.device)
                     loss = self.loss(x, z, t_0, t_1, l)
                     self.logger['train_noise_loss'] += loss.item()
                     self.logger['train_total_num'] += x.shape[0]
