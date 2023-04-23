@@ -99,7 +99,7 @@ class CIFAR10CMDataset(Dataset):
                 T.Normalize([0.5], [0.5]),
             ])
 
-        self.train_images_labels = CIFAR10(".", True, transform=self.transforms, download=True)
+        self.train_images_labels = CIFAR10(".", True, transform=self.transforms, download=False)
         # self.test_images_labels = [(img, label) for img, label in CIFAR10(".", False, download=True)]
         # self.images_labels = self.train_images_labels + self.valid_images_labels
         if(config.max_nums!=None):

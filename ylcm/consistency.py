@@ -9,6 +9,7 @@ from torch.optim import *
 from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics import MeanMetric
+from torchvision.datasets import CIFAR10
 from transformers import get_cosine_schedule_with_warmup
 from ylcm.dataset import get_dataset
 from ylcm.pipeline import ConsistencyPipeline
@@ -43,6 +44,9 @@ class Consistency(pl.LightningModule):
             clone_from=full_repo_name,
             token=self.token,
         )
+    def prepare_data(self) -> None:
+        if self.config.dataset_name in ['CIFAR10CMDataset']:
+            CIFAR10(".", train=True, download=True)
     def setup(self, stage: str) -> None:
         self.train_dataset =get_dataset(self.config)
     def train_dataloader(self):
