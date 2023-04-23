@@ -99,22 +99,23 @@ class CIFAR10CMDataset(Dataset):
                 T.Normalize([0.5], [0.5]),
             ])
 
-        self.train_images_labels = [(img, label)for img, label in CIFAR10(".", True, download=True)]
-        self.valid_images_labels = [(img, label) for img, label in CIFAR10(".", False, download=True)]
-        self.images_labels = self.train_images_labels + self.valid_images_labels
+        self.train_images_labels = CIFAR10(".", True, transform=self.transforms, download=True)
+        # self.test_images_labels = [(img, label) for img, label in CIFAR10(".", False, download=True)]
+        # self.images_labels = self.train_images_labels + self.valid_images_labels
         if(config.max_nums!=None):
-            self.images_labels = self.images_labels[:config.max_nums]
+            self.train_images_labels = self.train_images_labels[:config.max_nums]
         cifar10_classes = CIFAR10('.', False, download=False).classes
         self.index2label = {i:cls for i, cls in enumerate(cifar10_classes)} if config.conditional else None
     def __len__(self):
-        return len(self.images_labels)
+        return len(self.train_images_labels)
     def __getitem__(self, idx):
         if self.conditional:
-            return self.transforms(self.images_labels[idx][0]), self.images_labels[idx][1]
+            return self.train_images_labels[idx]
         else:
-            return self.transforms(self.images_labels[idx][0])
+            return self.train_images_labels[idx][0]
     def show_image(self, idx):
-        plt.imshow(self.images_labels[idx][0])
+        image = ((self.train_images_labels[idx][0]+0.5)*2).permute(1,2,0).cpu().numpy()
+        plt.imshow(image)
         plt.axis("off")
         plt.show()
 def get_dataset(config:Namespace) -> Dataset:

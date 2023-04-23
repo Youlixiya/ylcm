@@ -40,7 +40,7 @@ def get_args():
                         help='use ema')
     parser.add_argument('--mu0', type=float, default=0.9,
                         help='mu0')
-    parser.add_argument('--precision', type=str, default='16-mixed',
+    parser.add_argument('--precision', type=str, default='32',
                         help='precision')
 
     parser.add_argument('--exp', type=str, default='cm/unconditional_cm_cifar10_32',
