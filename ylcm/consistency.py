@@ -231,8 +231,8 @@ class Consistency(pl.LightningModule):
             or self.trainer.current_epoch + 1== self.config.num_epochs
         ):
             self.pipeline = ConsistencyPipeline(
-                unet=self.accelerator.unwrap_model(self.ema) if self.config.use_ema
-                else self.accelerator.unwrap_model(self.model))
+                unet=self.ema if self.config.use_ema
+                else self.model)
             self.save_samples(self.trainer.current_epoch + 1)
         if (
             ((self.trainer.current_epoch + 1) % self.config.save_model_epochs == 0)
