@@ -1,7 +1,7 @@
 tqdm
 transformers
 diffusers
-accelerate
 wandb
 lpips
 torchmetrics
+pytorch_lightning
