@@ -238,7 +238,7 @@ class Consistency(pl.LightningModule):
             ((self.trainer.current_epoch + 1) % self.config.save_model_epochs == 0)
             or self.trainer.current_epoch + 1 == self.config.num_epochs
         ):
-            self.pipeline.save_pretrained(self.config.output_dir)
+            self.pipeline.save_pretrained(self.config.exp)
             print('🚀consistency model pipeline has saved!')
             if self.trainer.current_epoch + 1 == self.config.num_epochs:
                 if self.config.push_to_hub:
