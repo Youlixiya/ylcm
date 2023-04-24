@@ -40,7 +40,7 @@ class ConsistencyPipeline(DiffusionPipeline):
         T: float = 80.0,
         data_std: float = 0.5,
         num_inference_steps: int = 1,
-        output_type: Optional[str] = None,
+        output_type: Optional[str] = "pil",
         return_dict: bool = True,
         **kwargs,
     ) -> Union[Tuple, ImagePipelineOutput]:
@@ -77,10 +77,9 @@ class ConsistencyPipeline(DiffusionPipeline):
             sample = (sample * skip_coef + out * out_coef).clamp(-1.0, 1.0)
 
         sample = (sample / 2 + 0.5).clamp(0, 1)
-        # image = sample.cpu().permute(0, 2, 3, 1).numpy()
+        image = sample.cpu().permute(0, 2, 3, 1).numpy()
 
         if output_type == "pil":
-            image = sample.cpu().permute(0, 2, 3, 1).numpy()
             image = self.numpy_to_pil(image)
         else:
             image = sample

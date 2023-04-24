@@ -15,7 +15,7 @@ from transformers import get_cosine_schedule_with_warmup
 from ylcm.dataset import get_dataset
 from ylcm.pipeline import ConsistencyPipeline
 from ylcm.models import get_model
-from ylcm.utils import get_grid
+from ylcm.utils import make_grid
 from ylcm.losses import get_loss_fn
 from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import save_image
@@ -69,13 +69,19 @@ class Consistency(pl.LightningModule):
             num_training_steps=self.train_total_steps)
         return [self.optimizer], [self.lr_scheduler]
 
-    def kerras_boundaries(self, rou, eps, N, T):
+    def kerras_boundaries(self,
+                          i : torch.Tensor,
+                          rou : int,
+                          eps : float,
+                          N : int,
+                          T : int
+                          ) -> torch.Tensor:
         # This will be used to generate the boundaries for the time discretization
 
-        return torch.tensor([
+        return torch.tensor(
             (eps ** (1 / rou) + i / (N - 1) * (T ** (1 / rou) - eps ** (1 / rou)))
-            ** rou for i in range(N)]
-        )
+            ** rou
+            )
     def forward(
         self,
         model: nn.Module,
@@ -127,6 +133,11 @@ class Consistency(pl.LightningModule):
     @property
     def ema_decay(self) -> float:
         return math.exp(self.config.s0 * math.log(self.config.mu0) / self.N)
+    @property
+    def N(self) -> int:
+        return  math.ceil(math.sqrt((self.trainer.global_step * ((
+                          self.config.s1 + 1) ** 2 - self.config.s0 ** 2) /
+                          self.trainer.estimated_stepping_batches) + self.config.s0 ** 2) - 1) + 1
     def loss(self,
              x:torch.Tensor, #[b, c, h, w]
              z:torch.Tensor, #[b, c, h, w]
@@ -164,18 +175,25 @@ class Consistency(pl.LightningModule):
                 data_std=self.config.data_std,
                 num_inference_steps=self.config.sample_steps
             ).images
-        image_grid = get_grid(images, self.config.image_size)
+        bn = len(images)
+        rows = int(math.sqrt(bn))
+        while (bn % rows != 0):
+            rows -= 1
+        cols = bn // rows
+        # Make a grid out of the images
+        image_grid = make_grid(images, rows=rows, cols=cols)
 
         # Save the images
         test_dir = os.path.join(self.config.exp, "samples")
         os.makedirs(test_dir, exist_ok=True)
-        save_image(
-            image_grid,
-            f"{test_dir}/{epoch:04d}.png",
-            "png",
-        )
+        image_grid.save(f"{test_dir}/{epoch:04d}.png")
+        # save_image(
+        #     image_grid,
+        #     f"{test_dir}/{epoch:04d}.png",
+        #     "png",
+        # )
         if self.config.use_wandb:
-            image_grid = wandb.Image(to_pil_image(image_grid), caption=f'Epoch {epoch}')
+            image_grid = wandb.Image(image_grid, caption=f'Epoch {epoch}')
             wandb.log({'sample_images':image_grid})
         del images, image_grid
     def training_step(self,
@@ -187,10 +205,6 @@ class Consistency(pl.LightningModule):
         else:
             x = batch
             l = None
-        device = x.device
-        optimizer = self.optimizers()
-        lr_scheduler = self.lr_schedulers()
-        self.N = math.ceil(math.sqrt((self.trainer.global_step * ((self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.trainer.estimated_stepping_batches) + self.config.s0 ** 2) - 1) + 1
         self.N_metric(self.N)
         self.log(
             "N",
@@ -198,13 +212,15 @@ class Consistency(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            logger=True,
+            logger=True if self.config.use_wandb else False
         )
-        kerras_boundaries = self.kerras_boundaries(self.config.rho, self.config.eps, self.N, self.config.T).to(device)
+        device = x.device
+        optimizer = self.optimizers()
+        lr_scheduler = self.lr_schedulers()
         z = torch.randn_like(x)
         t = torch.randint(0, self.N - 1, (x.shape[0],), device=device)
-        t_0 = kerras_boundaries[t]
-        t_1 = kerras_boundaries[t+1]
+        t_0 = self.kerras_boundaries(t, self.config.rho, self.config.eps, self.N, self.config.T).to(device)[t]
+        t_1 = self.kerras_boundaries(t+1, self.config.rho, self.config.eps, self.N, self.config.T).to(device)[t]
         loss = self.loss(x, z, t_0, t_1, l)
         optimizer.zero_grad()
         self.manual_backward(loss)
@@ -221,7 +237,7 @@ class Consistency(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            logger=True,
+            logger=True if self.config.use_wandb else False
         )
         mem = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0
         self.log(
@@ -230,7 +246,7 @@ class Consistency(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            logger=True,
+            logger=True if self.config.use_wandb else False,
         )
         self.log(
             "lr",
@@ -238,7 +254,7 @@ class Consistency(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            logger=True,
+            logger=True if self.config.use_wandb else False
         )
         return loss
 
