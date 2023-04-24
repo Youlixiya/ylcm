@@ -14,9 +14,10 @@ from transformers import get_cosine_schedule_with_warmup
 from ylcm.dataset import get_dataset
 from ylcm.pipeline import ConsistencyPipeline
 from ylcm.models import get_model
-from ylcm.utils import make_grid
+from ylcm.utils import get_grid
 from ylcm.losses import get_loss_fn
-
+from torchvision.transforms.functional import to_pil_image
+from torchvision.utils import save_image
 import pytorch_lightning as pl
 class Consistency(pl.LightningModule):
     def __init__(self,
@@ -103,6 +104,7 @@ class Consistency(pl.LightningModule):
             return out.clamp(-1.0, 1.0)
 
         return out
+    @torch.no_grad()
     def ema_update(self, N:int) -> None:
         param = [p.data for p in self.model.parameters()]
         param_ema = [p.data for p in self.ema.parameters()]
@@ -160,20 +162,18 @@ class Consistency(pl.LightningModule):
                 data_std=self.config.data_std,
                 num_inference_steps=self.config.sample_steps
             ).images
-        bn = len(images)
-        rows = int(math.sqrt(bn))
-        while (bn % rows != 0):
-            rows -= 1
-        cols = bn // rows
-        # Make a grid out of the images
-        image_grid = make_grid(images, rows=rows, cols=cols)
+        image_grid = get_grid(images, self.config.image_size)
 
         # Save the images
         test_dir = os.path.join(self.config.exp, "samples")
         os.makedirs(test_dir, exist_ok=True)
-        image_grid.save(f"{test_dir}/{epoch:04d}.png")
+        save_image(
+            image_grid,
+            f"{test_dir}/{epoch:04d}.png",
+            "png",
+        )
         if self.config.use_wandb:
-            image_grid = wandb.Image(image_grid, caption=f'Epoch {epoch}')
+            image_grid = wandb.Image(to_pil_image(image_grid), caption=f'Epoch {epoch}')
             wandb.log({'sample_images':image_grid})
         del images, image_grid
     def training_step(self,
@@ -215,6 +215,14 @@ class Consistency(pl.LightningModule):
         self.log(
             "men",
             mem,
+            prog_bar=True,
+            on_step=True,
+            on_epoch=False,
+            logger=True,
+        )
+        self.log(
+            "lr",
+            self.lr_scheduler.get_last_lr()[0],
             prog_bar=True,
             on_step=True,
             on_epoch=False,

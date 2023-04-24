@@ -1,10 +1,23 @@
+import PIL
 import math
-from typing import List, Optional, Tuple, Union
-
 import torch
-from diffusers import DiffusionPipeline, ImagePipelineOutput, UNet2DModel
-from diffusers.utils import randn_tensor
+import numpy as np
+from typing import List, Optional, Tuple, Union
+from dataclasses import dataclass
+from diffusers import DiffusionPipeline, UNet2DModel
+from diffusers.utils import randn_tensor, BaseOutput
+@dataclass
+class ImagePipelineOutput(BaseOutput):
+    """
+    Output class for image pipelines.
 
+    Args:
+        images (`List[PIL.Image.Image]` or `np.ndarray`)
+            List of denoised PIL images of length `batch_size` or numpy array of shape `(batch_size, height, width,
+            num_channels)`. PIL images or numpy array present the denoised images of the diffusion pipeline.
+    """
+
+    images: Union[List[PIL.Image.Image], np.ndarray, torch.Tensor]
 
 class ConsistencyPipeline(DiffusionPipeline):
     unet: UNet2DModel
@@ -27,7 +40,7 @@ class ConsistencyPipeline(DiffusionPipeline):
         T: float = 80.0,
         data_std: float = 0.5,
         num_inference_steps: int = 1,
-        output_type: Optional[str] = "pil",
+        output_type: Optional[str] = None,
         return_dict: bool = True,
         **kwargs,
     ) -> Union[Tuple, ImagePipelineOutput]:
@@ -64,10 +77,13 @@ class ConsistencyPipeline(DiffusionPipeline):
             sample = (sample * skip_coef + out * out_coef).clamp(-1.0, 1.0)
 
         sample = (sample / 2 + 0.5).clamp(0, 1)
-        image = sample.cpu().permute(0, 2, 3, 1).numpy()
+        # image = sample.cpu().permute(0, 2, 3, 1).numpy()
 
         if output_type == "pil":
+            image = sample.cpu().permute(0, 2, 3, 1).numpy()
             image = self.numpy_to_pil(image)
+        else:
+            image = sample
 
         if not return_dict:
             return (image,)
