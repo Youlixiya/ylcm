@@ -10,7 +10,6 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics import MeanMetric
 from torchvision.datasets import CIFAR10
-from transformers import get_cosine_schedule_with_warmup
 from ylcm.dataset import get_dataset
 from ylcm.pipeline import ConsistencyPipeline
 from ylcm.models import get_model
@@ -59,13 +58,7 @@ class Consistency(pl.LightningModule):
                                 drop_last=True)
     def configure_optimizers(self):
         self.optimizer = eval(self.config.optimizer)(self.model.parameters(), lr=self.config.learning_rate)
-        lr_warmup_steps = len(self.train_dataloader()) * self.config.warm_epochs
-        self.train_total_steps = len(self.train_dataloader()) * self.config.num_epochs
-        self.lr_scheduler = get_cosine_schedule_with_warmup(
-            optimizer=self.optimizer,
-            num_warmup_steps=lr_warmup_steps,
-            num_training_steps=self.train_total_steps)
-        return [self.optimizer], [self.lr_scheduler]
+        return [self.optimizer]
 
     def kerras_boundaries(self, rou, eps, N, T):
         # This will be used to generate the boundaries for the time discretization

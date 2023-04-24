@@ -16,8 +16,8 @@ def get_args():
                         help='sample steps in the inference')
     parser.add_argument('--num_epochs', type=int, default=50,
                         help='max number of training epochs')
-    parser.add_argument('--warm_epochs', type=int, default=3,
-                        help='number of warm up epochs')
+    # parser.add_argument('--warm_epochs', type=int, default=3,
+    #                     help='number of warm up epochs')
     parser.add_argument('--nc', type=int, default=10,
                         help='number of dataset class')
     parser.add_argument('--learning_rate', type=float, default=1e-4,

@@ -1,7 +1,6 @@
 tqdm
-transformers
-diffusers
-wandb
+diffusers==0.15.0
+wandb==0.14.2
 lpips
 torchmetrics
-pytorch_lightning
+pytorch_lightning==2.0.1.post0
