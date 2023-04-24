@@ -169,7 +169,7 @@ class Consistency(pl.LightningModule):
         image_grid = make_grid(images, rows=rows, cols=cols)
 
         # Save the images
-        test_dir = os.path.join(self.config.output_dir, "samples")
+        test_dir = os.path.join(self.config.exp, "samples")
         os.makedirs(test_dir, exist_ok=True)
         image_grid.save(f"{test_dir}/{epoch:04d}.png")
         if self.config.use_wandb:

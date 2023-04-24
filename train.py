@@ -25,12 +25,16 @@ def main():
         consistency = Consistency.load_from_checkpoint(
             checkpoint_path=config.resume_ckpt_path
         )
-        trainer = Trainer(
+    else:
+        consistency = Consistency(config)
+
+    trainer = Trainer(
             accelerator="auto",
             logger=wandb_logger,
             callbacks=[
                 ModelCheckpoint(
                     dirpath=os.path.join(config.exp,"ckpt"),
+                    filename="epoch:d",
                     save_top_k=3,
                     monitor="loss",
                 )
@@ -41,28 +45,6 @@ def main():
             gradient_clip_algorithm="norm",
             gradient_clip_val=1.0,
         )
-        trainer.fit(consistency, ckpt_path=config.resume_ckpt_path)
-
-    else:
-        consistency = Consistency(config)
-
-        trainer = Trainer(
-            accelerator="auto",
-            logger=wandb_logger,
-            callbacks=[
-                ModelCheckpoint(
-                    dirpath="ckpt",
-                    save_top_k=3,
-                    monitor="loss",
-                )
-            ],
-            max_epochs=config.num_epochs,
-            precision=config.precision,
-            # log_every_n_steps=config.log_every_n_steps,
-            gradient_clip_algorithm="norm",
-            gradient_clip_val=1.0,
-        )
-
-        trainer.fit(consistency)
+    trainer.fit(consistency, ckpt_path=config.resume_ckpt_path)
 if __name__ == '__main__':
     main()
