@@ -113,7 +113,7 @@ class Consistency(pl.LightningModule):
 
         return out
     @torch.no_grad()
-    def ema_update(self, N:int) -> None:
+    def ema_update(self) -> None:
         param = [p.data for p in self.model.parameters()]
         param_ema = [p.data for p in self.ema.parameters()]
 
@@ -135,9 +135,9 @@ class Consistency(pl.LightningModule):
         return math.exp(self.config.s0 * math.log(self.config.mu0) / self.N)
     @property
     def N(self) -> int:
-        return  math.ceil(math.sqrt((self.trainer.global_step * ((
+        return  math.ceil(math.sqrt(((self.trainer.current_epoch + 1) * ((
                           self.config.s1 + 1) ** 2 - self.config.s0 ** 2) /
-                          self.trainer.estimated_stepping_batches) + self.config.s0 ** 2) - 1) + 1
+                          self.config.num_epochs) + self.config.s0 ** 2) - 1) + 1
     def loss(self,
              x:torch.Tensor, #[b, c, h, w]
              z:torch.Tensor, #[b, c, h, w]
@@ -227,7 +227,7 @@ class Consistency(pl.LightningModule):
         self.clip_gradients(optimizer, gradient_clip_val=1.0, gradient_clip_algorithm="norm")
         # 调用优化器根据梯度更新模型参数
         optimizer.step()
-        self.ema_update(self.N)
+        self.ema_update()
         # 更新学习率，每训练一个批次学习率都会变化，学习率先会经过热身阶段从很小的值变成初始设置的值然后学习率会不断下降
         lr_scheduler.step()
         self.loss_metirc(loss)
