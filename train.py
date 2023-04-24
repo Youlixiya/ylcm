@@ -34,7 +34,7 @@ def main():
             callbacks=[
                 ModelCheckpoint(
                     dirpath=os.path.join(config.exp,"ckpt"),
-                    filename="epoch:d",
+                    filename="{epoch}-{loss}",
                     save_top_k=3,
                     monitor="loss",
                 )
