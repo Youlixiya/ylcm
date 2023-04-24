@@ -111,9 +111,9 @@ class Consistency(pl.LightningModule):
         param = [p.data for p in self.model.parameters()]
         param_ema = [p.data for p in self.ema.parameters()]
 
-        torch._foreach_mul_(param_ema, self.ema_decay(N))
-        torch._foreach_add_(param_ema, param, alpha=1 - self.ema_decay(N))
-        self.ema_decay_metric(self.ema_decay(N))
+        torch._foreach_mul_(param_ema, self.ema_decay)
+        torch._foreach_add_(param_ema, param, alpha=1 - self.ema_decay)
+        self.ema_decay_metric(self.ema_decay)
         # if self.config.use_wandb:
         #     wandb.log({'ema_decay' : self.ema_decay(N)})
         self.log(
@@ -124,9 +124,9 @@ class Consistency(pl.LightningModule):
             on_epoch=False,
             logger=True,
         )
-
-    def ema_decay(self, N:int) -> float:
-        return math.exp(self.config.s0 * math.log(self.config.mu0) / N)
+    @property
+    def ema_decay(self) -> float:
+        return math.exp(self.config.s0 * math.log(self.config.mu0) / self.N)
     def loss(self,
              x:torch.Tensor, #[b, c, h, w]
              z:torch.Tensor, #[b, c, h, w]
@@ -241,20 +241,17 @@ class Consistency(pl.LightningModule):
             logger=True,
         )
         return loss
-    def optimizer_step(self, *args, **kwargs) -> None:
-        super().optimizer_step(*args, **kwargs)
-        self.ema_update(self.N)
 
     def on_train_epoch_end(self) -> None:
 
         if (
             ((self.trainer.current_epoch + 1) % self.config.save_image_epochs == 0)
-            or self.trainer.current_epoch + 1== self.config.num_epochs
+            or self.trainer.current_epoch + 1 == self.config.num_epochs
         ):
             self.pipeline = ConsistencyPipeline(
                 unet=self.ema if self.config.use_ema
                 else self.model)
-            self.save_samples(self.trainer.current_epoch + 1)
+            self.save_samples(self.trainer.current_epoch)
         if (
             ((self.trainer.current_epoch + 1) % self.config.save_model_epochs == 0)
             or self.trainer.current_epoch + 1 == self.config.num_epochs
