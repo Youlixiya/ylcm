@@ -215,7 +215,7 @@ class Consistency(pl.LightningModule):
         )
         self.log(
             "lr",
-            self.lr_scheduler.get_last_lr()[0],
+            self.optimizer.param_groups[0]['lr'],
             prog_bar=True,
             on_step=True,
             on_epoch=False,
