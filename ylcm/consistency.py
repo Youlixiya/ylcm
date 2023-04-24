@@ -10,6 +10,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics import MeanMetric
 from torchvision.datasets import CIFAR10
+from transformers import get_cosine_schedule_with_warmup
+
 from ylcm.dataset import get_dataset
 from ylcm.pipeline import ConsistencyPipeline
 from ylcm.models import get_model
@@ -31,6 +33,7 @@ class Consistency(pl.LightningModule):
         self.loss_metirc = MeanMetric()
         self.ema_decay_metric = MeanMetric()
         self.N_metric = MeanMetric()
+        self.automatic_optimization=False
     def init_huggingface_hub(self, config):
         import huggingface_hub
         self.token = huggingface_hub.HfFolder.get_token()
@@ -58,7 +61,13 @@ class Consistency(pl.LightningModule):
                                 drop_last=True)
     def configure_optimizers(self):
         self.optimizer = eval(self.config.optimizer)(self.model.parameters(), lr=self.config.learning_rate)
-        return [self.optimizer]
+        lr_warmup_steps = len(self.train_dataloader()) * self.config.warm_epochs
+        self.train_total_steps = len(self.train_dataloader()) * self.config.num_epochs
+        self.lr_scheduler = get_cosine_schedule_with_warmup(
+            optimizer=self.optimizer,
+            num_warmup_steps=lr_warmup_steps,
+            num_training_steps=self.train_total_steps)
+        return [self.optimizer], [self.lr_scheduler]
 
     def kerras_boundaries(self, rou, eps, N, T):
         # This will be used to generate the boundaries for the time discretization
@@ -179,6 +188,8 @@ class Consistency(pl.LightningModule):
             x = batch
             l = None
         device = x.device
+        optimizer = self.optimizers()
+        lr_scheduler = self.lr_schedulers()
         self.N = math.ceil(math.sqrt((self.trainer.global_step * ((self.config.s1 + 1) ** 2 - self.config.s0 ** 2) / self.trainer.estimated_stepping_batches) + self.config.s0 ** 2) - 1) + 1
         self.N_metric(self.N)
         self.log(
@@ -195,6 +206,14 @@ class Consistency(pl.LightningModule):
         t_0 = kerras_boundaries[t]
         t_1 = kerras_boundaries[t+1]
         loss = self.loss(x, z, t_0, t_1, l)
+        optimizer.zero_grad()
+        self.manual_backward(loss)
+        self.clip_gradients(optimizer, gradient_clip_val=1.0, gradient_clip_algorithm="norm")
+        # 调用优化器根据梯度更新模型参数
+        optimizer.step()
+        self.ema_update(self.N)
+        # 更新学习率，每训练一个批次学习率都会变化，学习率先会经过热身阶段从很小的值变成初始设置的值然后学习率会不断下降
+        lr_scheduler.step()
         self.loss_metirc(loss)
         self.log(
             "loss",
@@ -215,7 +234,7 @@ class Consistency(pl.LightningModule):
         )
         self.log(
             "lr",
-            self.optimizer.param_groups[0]['lr'],
+            lr_scheduler.get_last_lr()[0],
             prog_bar=True,
             on_step=True,
             on_epoch=False,
