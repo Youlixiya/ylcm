@@ -41,9 +41,10 @@ def main():
             ],
             max_epochs=config.num_epochs,
             precision=config.precision,
-            # log_every_n_steps=args.log_every_n_steps,
+            log_every_n_steps=1,
             gradient_clip_algorithm="norm",
             gradient_clip_val=1.0,
+            benchmark=True,
         )
     trainer.fit(consistency, ckpt_path=config.resume_ckpt_path)
 if __name__ == '__main__':

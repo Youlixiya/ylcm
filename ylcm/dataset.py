@@ -114,7 +114,7 @@ class CIFAR10CMDataset(Dataset):
         else:
             return self.train_images_labels[idx][0]
     def show_image(self, idx):
-        image = ((self.train_images_labels[idx][0]+0.5)*2).permute(1,2,0).cpu().numpy()
+        image = ((self.train_images_labels[idx][0]/2)+0.5).permute(1,2,0).cpu().numpy()
         plt.imshow(image)
         plt.axis("off")
         plt.show()

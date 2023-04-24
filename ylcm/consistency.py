@@ -175,6 +175,7 @@ class Consistency(pl.LightningModule):
         if self.config.use_wandb:
             image_grid = wandb.Image(image_grid, caption=f'Epoch {epoch}')
             wandb.log({'sample_images':image_grid})
+        del images, image_grid
     def training_step(self,
                       batch:Union[torch.Tensor, Tuple],
                       batch_idx:int
@@ -246,5 +247,6 @@ class Consistency(pl.LightningModule):
                         commit_message=f"Epoch {self.trainer.current_epoch + 1}",
                         blocking=False,
                     )
+        torch.cuda.empty_cache()
 
 
