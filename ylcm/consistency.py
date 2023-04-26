@@ -128,7 +128,7 @@ class Consistency(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            logger=True,
+            logger=True if self.config.use_wandb else False
         )
     @property
     def ema_decay(self) -> float:
